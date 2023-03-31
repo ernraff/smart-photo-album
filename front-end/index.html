@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Photo Album</title>
+	<link href="./photo_album.css" rel="stylesheet">
+	<script src="main.js"></script>
+	<script type="text/javascript" src="apiGateway-js-sdk/lib/axios/dist/axios.standalone.js"></script>
+	<script type="text/javascript" src="apiGateway-js-sdk/lib/CryptoJS/rollups/hmac-sha256.js"></script>
+	<script type="text/javascript" src="apiGateway-js-sdk/lib/CryptoJS/rollups/sha256.js"></script>
+	<script type="text/javascript" src="apiGateway-js-sdk/lib/CryptoJS/components/hmac.js"></script>
+	<script type="text/javascript" src="apiGateway-js-sdk/lib/CryptoJS/components/enc-base64.js"></script>
+	<script type="text/javascript" src="apiGateway-js-sdk/lib/url-template/url-template.js"></script>
+	<script type="text/javascript" src="apiGateway-js-sdk/lib/apiGatewayCore/sigV4Client.js"></script>
+	<script type="text/javascript" src="apiGateway-js-sdk/lib/apiGatewayCore/apiGatewayClient.js"></script>
+	<script type="text/javascript" src="apiGateway-js-sdk/lib/apiGatewayCore/simpleHttpClient.js"></script>
+	<script type="text/javascript" src="apiGateway-js-sdk/lib/apiGatewayCore/utils.js"></script>
+	<script type="text/javascript" src="apiGateway-js-sdk/apigClient.js"></script>
+</head>
+<body>
+	<center>
+		<div class="header">
+			<h1>Smart Photo Album</h1>
+		</div>
+	</center>
+	<div class="bar">
+		<form>
+			<input class="searchbar" type="text" title="Search">
+			<a id="link" href="#"> <img class="voice" src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Google_mic.svg/716px-Google_mic.svg.png" title="Search by Voice" id="mic" onclick="interpretVoice()"></a>
+		</form>
+	</div>
+	<div id="switch">micOn</div>
+	<center>
+		<div class="buttons">
+			<button class="button" type="button" onclick="search()">Search</button>
+			<div class="buttons">
+				<form action="/action_page.php">
+					<input type="file" id="uploaded_file" name="filename" accept="image/*">
+					<input type="text" id="custom_labels" name="custom_labels" placeholder="Custom labels">
+				</form>
+				<button class="button" type="button" onclick="upload()">Upload</button>
+	 		</div>
+		</div>
+		<div class="row">
+            <div id="photos_res">
+            </div>
+        </div>
+ 	</center>
+</body>
+</html>
