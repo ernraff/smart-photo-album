@@ -1,0 +1,27 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      python: 3.8
+    commands:
+      - echo "Installing dependencies..."
+      - pip install -r requirements.txt -t lib1
+      - pip install -r requirements.txt -t lib2
+  build:
+    commands:
+      - echo "Zipping deployment package..."
+      - cd lib1
+      - zip -r9 ../lf1.zip .
+      - cd ..
+      - zip -g lf1.zip lambda_function_1.py
+      - cd lib2
+      - zip -r9 ../lf2.zip .
+      - cd ..
+      - zip -g lf2.zip lambda_function_2.py
+      
+  post_build:
+    commands:
+      - echo "Updating lambda Function..."
+      - aws lambda update-function-code --function-name index-photos --zip-file fileb://lf1.zip
+      - aws lambda update-function-code --function-name search-photos --zip-file fileb://lf2.zip
+      - echo "DONE!!"
