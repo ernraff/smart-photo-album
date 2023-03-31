@@ -1,0 +1,434 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Metadata:
+    Generator: "former2"
+Description: "smart photo album"
+Resources:
+    LambdaFunction:
+        Type: "AWS::Lambda::Function"
+        Properties:
+            Description: ""
+            FunctionName: "search-photos"
+            Handler: "lambda_function_2.lambda_handler"
+            Architectures: 
+              - "x86_64"
+            Code: 
+                S3Bucket: "prod-iad-c1-djusa-tasks"
+                S3Key: !Sub "/snapshots/${AWS::AccountId}/search-photos-db865454-23ba-40a0-9d6b-7d8124c161f4"
+                S3ObjectVersion: "DEapKpEosLpxoEWgoRHWbdy9dvoP20KX"
+            MemorySize: 128
+            Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/service-role/search-photos-role-k6u032co"
+            Runtime: "python3.9"
+            Timeout: 30
+            TracingConfig: 
+                Mode: "PassThrough"
+            EphemeralStorage: 
+                Size: 512
+
+    LambdaFunction2:
+        Type: "AWS::Lambda::Function"
+        Properties:
+            Description: ""
+            FunctionName: "index-photos"
+            Handler: "lambda_function_1.lambda_handler"
+            Architectures: 
+              - "x86_64"
+            Code: 
+                S3Bucket: "prod-iad-c1-djusa-tasks"
+                S3Key: !Sub "/snapshots/${AWS::AccountId}/index-photos-ea9ef659-adad-4014-bee5-8f37b1b93343"
+                S3ObjectVersion: "FRIyeerYRo7fQiLmmT0T3Zh4khe_I7Aq"
+            MemorySize: 128
+            Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/service-role/indexRole"
+            Runtime: "python3.9"
+            Timeout: 20
+            TracingConfig: 
+                Mode: "PassThrough"
+            EphemeralStorage: 
+                Size: 512
+
+    LambdaPermission:
+        Type: "AWS::Lambda::Permission"
+        Properties:
+            Action: "lambda:InvokeFunction"
+            FunctionName: !GetAtt LambdaFunction.Arn
+            Principal: "apigateway.amazonaws.com"
+            SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:symqbsrya1/*/GET/search"
+
+    LambdaPermission2:
+        Type: "AWS::Lambda::Permission"
+        Properties:
+            Action: "lambda:InvokeFunction"
+            FunctionName: !GetAtt LambdaFunction2.Arn
+            Principal: "s3.amazonaws.com"
+            SourceArn: "arn:aws:s3:::er-photo-bucket"
+
+    S3Bucket:
+        Type: "AWS::S3::Bucket"
+        Properties:
+            BucketName: "smart-photo-frontend"
+            BucketEncryption: 
+                ServerSideEncryptionConfiguration: 
+                  - 
+                    ServerSideEncryptionByDefault: 
+                        SSEAlgorithm: "AES256"
+                    BucketKeyEnabled: true
+            WebsiteConfiguration: 
+                IndexDocument: "index.html"
+
+    S3Bucket2:
+        Type: "AWS::S3::Bucket"
+        Properties:
+            BucketName: "er-photo-bucket"
+            BucketEncryption: 
+                ServerSideEncryptionConfiguration: 
+                  - 
+                    ServerSideEncryptionByDefault: 
+                        SSEAlgorithm: "AES256"
+                    BucketKeyEnabled: true
+            CorsConfiguration: 
+                CorsRules: 
+                  - 
+                    AllowedHeaders: 
+                      - "*"
+                    AllowedMethods: 
+                      - "PUT"
+                      - "HEAD"
+                      - "GET"
+                    AllowedOrigins: 
+                      - "*"
+            NotificationConfiguration: 
+                LambdaConfigurations: 
+                  - 
+                    Event: "s3:ObjectCreated:Put"
+                    Function: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:index-photos"
+
+    S3BucketPolicy:
+        Type: "AWS::S3::BucketPolicy"
+        Properties:
+            Bucket: !Ref S3Bucket2
+            PolicyDocument: 
+                Version: "2012-10-17"
+                Statement: 
+                  - 
+                    Sid: "AddPerm"
+                    Effect: "Allow"
+                    Principal: "*"
+                    Action: "s3:GetObject"
+                    Resource: !Sub "arn:aws:s3:::${S3Bucket2}/*"
+
+    S3BucketPolicy2:
+        Type: "AWS::S3::BucketPolicy"
+        Properties:
+            Bucket: !Ref S3Bucket
+            PolicyDocument: 
+                Version: "2012-10-17"
+                Statement: 
+                  - 
+                    Sid: "PublicReadGetObject"
+                    Effect: "Allow"
+                    Principal: "*"
+                    Action: "s3:GetObject"
+                    Resource: !Sub "arn:aws:s3:::${S3Bucket}/*"
+
+    ApiGatewayStage:
+        Type: "AWS::ApiGateway::Stage"
+        Properties:
+            StageName: "alpha"
+            DeploymentId: "p4bvjr"
+            RestApiId: "symqbsrya1"
+            CacheClusterEnabled: false
+            MethodSettings: 
+              - 
+                CacheDataEncrypted: false
+                CacheTtlInSeconds: 300
+                CachingEnabled: false
+                DataTraceEnabled: true
+                HttpMethod: "*"
+                LoggingLevel: "INFO"
+                MetricsEnabled: false
+                ResourcePath: "/*"
+                ThrottlingBurstLimit: 5000
+                ThrottlingRateLimit: 10000
+              - 
+                CacheDataEncrypted: false
+                CacheTtlInSeconds: 300
+                CachingEnabled: false
+                DataTraceEnabled: true
+                HttpMethod: "OPTIONS"
+                LoggingLevel: "INFO"
+                MetricsEnabled: false
+                ResourcePath: "/~1upload~1{bucket}~1{filename}"
+                ThrottlingBurstLimit: 5000
+                ThrottlingRateLimit: 10000
+            TracingEnabled: false
+
+    ApiGatewayStage2:
+        Type: "AWS::ApiGateway::Stage"
+        Properties:
+            StageName: "dev"
+            DeploymentId: "6a12i8"
+            RestApiId: "symqbsrya1"
+            CacheClusterEnabled: false
+            TracingEnabled: false
+
+    ApiGatewayMethod:
+        Type: "AWS::ApiGateway::Method"
+        Properties:
+            RestApiId: "symqbsrya1"
+            ResourceId: "1f7xh1"
+            HttpMethod: "PUT"
+            AuthorizationType: "NONE"
+            ApiKeyRequired: false
+            RequestParameters: 
+                "method.request.header.x-amz-meta-customlabels": false
+                "method.request.path.bucket": true
+                "method.request.path.filename": true
+            MethodResponses: 
+              - 
+                ResponseParameters: 
+                    "method.response.header.Access-Control-Allow-Origin": false
+                StatusCode: "200"
+            Integration: 
+                CacheNamespace: "1f7xh1"
+                Credentials: !Sub "arn:aws:iam::${AWS::AccountId}:role/apiGatewayPhotoAlbum"
+                IntegrationHttpMethod: "PUT"
+                IntegrationResponses: 
+                  - 
+                    ResponseParameters: 
+                        "method.response.header.Access-Control-Allow-Origin": "'*'"
+                    StatusCode: "200"
+                PassthroughBehavior: "WHEN_NO_TEMPLATES"
+                RequestParameters: 
+                    "integration.request.header.x-amz-meta-customlabels": "method.request.header.x-amz-meta-customlabels"
+                    "integration.request.path.bucket": "method.request.path.bucket"
+                    "integration.request.path.key": "method.request.path.filename"
+                RequestTemplates: 
+                    "application/json": |
+                        {
+                          "headers": {
+                            #foreach($header in $input.params().header.keySet())
+                              "$header": "$util.escapeJavaScript($input.params().header.get($header))"
+                              #if($foreach.hasNext),#end
+                            #end
+                          },
+                          "body": $input.json('$')
+                        }
+                TimeoutInMillis: 29000
+                Type: "AWS"
+                Uri: !Sub "arn:aws:apigateway:${AWS::Region}:s3:path/{bucket}/{key}"
+
+    ApiGatewayMethod2:
+        Type: "AWS::ApiGateway::Method"
+        Properties:
+            RestApiId: "symqbsrya1"
+            ResourceId: "1f7xh1"
+            HttpMethod: "OPTIONS"
+            AuthorizationType: "NONE"
+            ApiKeyRequired: false
+            RequestParameters: {}
+            MethodResponses: 
+              - 
+                ResponseParameters: 
+                    "method.response.header.Access-Control-Allow-Headers": false
+                    "method.response.header.Access-Control-Allow-Methods": false
+                    "method.response.header.Access-Control-Allow-Origin": false
+                StatusCode: "200"
+            Integration: 
+                CacheNamespace: "1f7xh1"
+                IntegrationResponses: 
+                  - 
+                    ResponseParameters: 
+                        "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+                        "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,PUT'"
+                        "method.response.header.Access-Control-Allow-Origin": "'*'"
+                    StatusCode: "200"
+                PassthroughBehavior: "WHEN_NO_MATCH"
+                RequestTemplates: 
+                    "application/json": "{\"statusCode\": 200}"
+                TimeoutInMillis: 29000
+                Type: "MOCK"
+
+    ApiGatewayMethod3:
+        Type: "AWS::ApiGateway::Method"
+        Properties:
+            RestApiId: "symqbsrya1"
+            ResourceId: "w7befv"
+            HttpMethod: "GET"
+            AuthorizationType: "NONE"
+            ApiKeyRequired: false
+            OperationName: "searchPhotos"
+            RequestParameters: 
+                "method.request.querystring.q": true
+            MethodResponses: 
+              - 
+                ResponseModels: 
+                    "application/json": "SearchResponse"
+                ResponseParameters: 
+                    "method.response.header.Access-Control-Allow-Origin": false
+                StatusCode: "200"
+              - 
+                ResponseModels: 
+                    "application/json": "Error"
+                StatusCode: "403"
+              - 
+                ResponseModels: 
+                    "application/json": "Error"
+                StatusCode: "500"
+            Integration: 
+                CacheNamespace: "w7befv"
+                ContentHandling: "CONVERT_TO_TEXT"
+                IntegrationHttpMethod: "POST"
+                IntegrationResponses: 
+                  - 
+                    ResponseParameters: 
+                        "method.response.header.Access-Control-Allow-Origin": "'*'"
+                    StatusCode: "200"
+                PassthroughBehavior: "WHEN_NO_MATCH"
+                TimeoutInMillis: 29000
+                Type: "AWS_PROXY"
+                Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:search-photos/invocations"
+
+    ApiGatewayMethod4:
+        Type: "AWS::ApiGateway::Method"
+        Properties:
+            RestApiId: "symqbsrya1"
+            ResourceId: "w7befv"
+            HttpMethod: "OPTIONS"
+            AuthorizationType: "NONE"
+            ApiKeyRequired: false
+            MethodResponses: 
+              - 
+                ResponseParameters: 
+                    "method.response.header.Access-Control-Allow-Headers": false
+                    "method.response.header.Access-Control-Allow-Methods": false
+                    "method.response.header.Access-Control-Allow-Origin": false
+                StatusCode: "200"
+            Integration: 
+                CacheNamespace: "w7befv"
+                ContentHandling: "CONVERT_TO_TEXT"
+                IntegrationHttpMethod: "POST"
+                IntegrationResponses: 
+                  - 
+                    ResponseParameters: 
+                        "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+                        "method.response.header.Access-Control-Allow-Methods": "'GET,OPTIONS'"
+                        "method.response.header.Access-Control-Allow-Origin": "'*'"
+                    StatusCode: "200"
+                PassthroughBehavior: "WHEN_NO_MATCH"
+                TimeoutInMillis: 29000
+                Type: "AWS"
+                Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:search-photos/invocations"
+
+    CodeBuildSourceCredential:
+        Type: "AWS::CodeBuild::SourceCredential"
+        Properties:
+            AuthType: "OAUTH"
+            ServerType: "GITHUB"
+            Token: "REPLACEME"
+
+    CodePipelinePipeline:
+        Type: "AWS::CodePipeline::Pipeline"
+        Properties:
+            Name: "frontend-pipeline"
+            RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/service-role/AWSCodePipelineServiceRole-${AWS::Region}-frontend-pipeline"
+            ArtifactStore: 
+                Location: !Sub "codepipeline-${AWS::Region}-945242603886"
+                Type: "S3"
+            Stages: 
+              - 
+                Name: "Source"
+                Actions: 
+                  - 
+                    Name: "Source"
+                    ActionTypeId: 
+                        Category: "Source"
+                        Owner: "AWS"
+                        Provider: "CodeStarSourceConnection"
+                        Version: "1"
+                    Configuration: 
+                        BranchName: "main"
+                        ConnectionArn: !Sub "arn:aws:codestar-connections:${AWS::Region}:${AWS::AccountId}:connection/aeee585c-8200-4c00-9b9f-fd52552c23a9"
+                        FullRepositoryId: "ernraff/github_to_frontend"
+                        OutputArtifactFormat: "CODE_ZIP"
+                    OutputArtifacts: 
+                      - 
+                        Name: "SourceArtifact"
+                    Region: !Ref AWS::Region
+                    Namespace: "SourceVariables"
+                    RunOrder: 1
+              - 
+                Name: "Deploy"
+                Actions: 
+                  - 
+                    Name: "Deploy"
+                    ActionTypeId: 
+                        Category: "Deploy"
+                        Owner: "AWS"
+                        Provider: "S3"
+                        Version: "1"
+                    Configuration: 
+                        BucketName: "smart-photo-frontend"
+                        Extract: "true"
+                    InputArtifacts: 
+                      - 
+                        Name: "SourceArtifact"
+                    Region: !Ref AWS::Region
+                    Namespace: "DeployVariables"
+                    RunOrder: 1
+
+    CodePipelinePipeline2:
+        Type: "AWS::CodePipeline::Pipeline"
+        Properties:
+            Name: "lambda-pipeline"
+            RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/service-role/AWSCodePipelineServiceRole-${AWS::Region}-lambda-pipeline"
+            ArtifactStore: 
+                Location: !Sub "codepipeline-${AWS::Region}-945242603886"
+                Type: "S3"
+            Stages: 
+              - 
+                Name: "Source"
+                Actions: 
+                  - 
+                    Name: "Source"
+                    ActionTypeId: 
+                        Category: "Source"
+                        Owner: "AWS"
+                        Provider: "CodeStarSourceConnection"
+                        Version: "1"
+                    Configuration: 
+                        BranchName: "main"
+                        ConnectionArn: !Sub "arn:aws:codestar-connections:${AWS::Region}:${AWS::AccountId}:connection/aeee585c-8200-4c00-9b9f-fd52552c23a9"
+                        FullRepositoryId: "ernraff/github-to-lambda"
+                        OutputArtifactFormat: "CODE_ZIP"
+                    OutputArtifacts: 
+                      - 
+                        Name: "SourceArtifact"
+                    Region: !Ref AWS::Region
+                    Namespace: "SourceVariables"
+                    RunOrder: 1
+              - 
+                Name: "Build"
+                Actions: 
+                  - 
+                    Name: "Build"
+                    ActionTypeId: 
+                        Category: "Build"
+                        Owner: "AWS"
+                        Provider: "CodeBuild"
+                        Version: "1"
+                    Configuration: 
+                        ProjectName: "git-to-lambda-build"
+                    InputArtifacts: 
+                      - 
+                        Name: "SourceArtifact"
+                    OutputArtifacts: 
+                      - 
+                        Name: "BuildArtifact"
+                    Region: !Ref AWS::Region
+                    Namespace: "BuildVariables"
+                    RunOrder: 1
+
+
+
+
+
+
